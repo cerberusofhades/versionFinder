@@ -1,34 +1,55 @@
 #!/bin/bash
 
-LOCAL_FILE_PATH="/path_to_file"
-GITHUB_REPO_BASE_URL="https://raw.githubusercontent.com/<username/repository>"
-TEMP_COMPARE_FILE="temp"
-
 # Color codes
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
-# Fetch all tags from the GitHub repository
-TAGS=$(git ls-remote --tags https://github.com/<username>/repository.git | awk -F/ '{ print $3 }' | grep -v '\^{}')
-# echo "Found tags: ${TAGS}"
+# Input validation
+if [[ $# -lt 2 ]]; then
+    echo "Usage: $0 <local_file> <repo_name> [-r]" >&2
+    exit 1
+fi
 
-for TAG in $TAGS; do
-  # Print the version being tested
-  echo -n "Version ${TAG} => "
+LOCAL_FILE_PATH=$1
+REPO_NAME=$2
+GIT_REPO_URL="https://github.com/${REPO_NAME}.git"
+GITHUB_REPO_BASE_URL="https://raw.githubusercontent.com/${REPO_NAME}"
+CHECKSUM_LOCAL=$(md5sum ${LOCAL_FILE_PATH} | awk '{ print $1 }')
 
-  # Download the specific version based on the tag
-  curl -sL "${GITHUB_REPO_BASE_URL}/${TAG}/lib/<file_name>" -o $TEMP_COMPARE_FILE
-  
-  # Compare the downloaded file to the local version
-  if diff -q $LOCAL_FILE_PATH $TEMP_COMPARE_FILE > /dev/null; then
-    echo -e "${GREEN}match${NC}"
-    rm $TEMP_COMPARE_FILE
-    exit 0
-  else
-    echo -e "${RED}not match${NC}"
-  fi
+# Extract the file name from the local file path
+FILE_NAME=$(basename ${LOCAL_FILE_PATH})
+
+function check_version() {
+    VERSION=$1
+    printf "Version ${VERSION} => "
+    FILE_URL="${GITHUB_REPO_BASE_URL}/${VERSION}/lib/${FILE_NAME}"
+    CHECKSUM_REMOTE=$(curl -s ${FILE_URL} | md5sum | awk '{ print $1 }')
+    if [[ "$CHECKSUM_REMOTE" == "$CHECKSUM_LOCAL" ]]; then
+        printf "${GREEN}match${NC}\n"
+        exit 0
+    else
+        printf "${RED}not match${NC}\n"
+    fi
+}
+
+# Check for reverse order
+REVERSE=""
+if [[ $3 == "-r" ]]; then
+    REVERSE="-r"
+fi
+
+# Set GIT_TERMINAL_PROMPT to 0 to avoid prompt for authentication in the terminal
+export GIT_TERMINAL_PROMPT=0
+
+VERSIONS=$(git ls-remote --tags ${GIT_REPO_URL} 2>/dev/null | awk -F/ '{ print $3 }' | grep -v {} | sort -V ${REVERSE})
+
+# Check if the repo was accessible
+if [ -z "$VERSIONS" ]; then
+    echo "Repository ${REPO_NAME} does not exist or is not accessible."
+    exit 1
+fi
+
+for VERSION in $VERSIONS; do
+    check_version $VERSION
 done
-
-echo "No match found"
-rm $TEMP_COMPARE_FILE
