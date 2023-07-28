@@ -6,13 +6,14 @@ GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
 # Input validation
-if [[ $# -lt 2 ]]; then
-    echo "Usage: $0 <local_file> <repo_name> [-r]" >&2
+if [[ $# -lt 3 ]]; then
+    echo "Usage: $0 <local_file> <repo_name> <repo_file_path> [-r]" >&2
     exit 1
 fi
 
 LOCAL_FILE_PATH=$1
 REPO_NAME=$2
+REPO_FILE_PATH=$3
 GIT_REPO_URL="https://github.com/${REPO_NAME}.git"
 GITHUB_REPO_BASE_URL="https://raw.githubusercontent.com/${REPO_NAME}"
 CHECKSUM_LOCAL=$(md5sum ${LOCAL_FILE_PATH} | awk '{ print $1 }')
@@ -23,7 +24,7 @@ FILE_NAME=$(basename ${LOCAL_FILE_PATH})
 function check_version() {
     VERSION=$1
     printf "Version ${VERSION} => "
-    FILE_URL="${GITHUB_REPO_BASE_URL}/${VERSION}/lib/${FILE_NAME}"
+    FILE_URL="${GITHUB_REPO_BASE_URL}/${VERSION}${REPO_FILE_PATH}/${FILE_NAME}"
     CHECKSUM_REMOTE=$(curl -s ${FILE_URL} | md5sum | awk '{ print $1 }')
     if [[ "$CHECKSUM_REMOTE" == "$CHECKSUM_LOCAL" ]]; then
         printf "${GREEN}match${NC}\n"
@@ -35,7 +36,7 @@ function check_version() {
 
 # Check for reverse order
 REVERSE=""
-if [[ $3 == "-r" ]]; then
+if [[ $4 == "-r" ]]; then
     REVERSE="-r"
 fi
 

@@ -5,11 +5,12 @@ The `versionFinder.sh` script is a simple tool that compares the local version o
 ## Usage
 
 ```
-Usage: ./versionFinder.sh <local_file> <repo_name> [-r]
+Usage: ./versionFinder.sh <local_file> <repo_name> <repo_file_path> [-r]
 ```
 
 - `local_file`: The path to the local file that you want to compare. 
-- `repo_name`: The name of the GitHub repository in the format `username/repository`. The script assumes that the file exists in the repository under the path `/lib/<file_name>`.
+- `repo_name`: The name of the GitHub repository in the format `username/repository`.
+- `repo_file_path`: The path in the repository where the file is located, excluding the file name. Should start with a `/`.
 - `-r`: An optional flag. If included, the script will check versions in reverse order (from newest to oldest).
 
 ## Output
