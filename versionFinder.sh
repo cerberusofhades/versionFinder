@@ -6,16 +6,26 @@ GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
 # Input validation
-if [[ $# -lt 3 ]]; then
-    echo "Usage: $0 <local_file> <repo_name> <repo_file_path> [-r]" >&2
+if [[ $# -lt 2 ]]; then
+    echo "Usage: $0 <local_file> <repo_name> [<repo_file_path>] [-r]" >&2
     exit 1
 fi
 
 LOCAL_FILE_PATH=$1
 REPO_NAME=$2
-REPO_FILE_PATH=$3
+REPO_FILE_PATH=""
+if [[ $3 != "-r" ]]; then
+    REPO_FILE_PATH=$3
+fi
 GIT_REPO_URL="https://github.com/${REPO_NAME}.git"
 GITHUB_REPO_BASE_URL="https://raw.githubusercontent.com/${REPO_NAME}"
+
+# Check if local file exists
+if [[ ! -f $LOCAL_FILE_PATH ]]; then
+    echo "Local file ${LOCAL_FILE_PATH} does not exist."
+    exit 1
+fi
+
 CHECKSUM_LOCAL=$(md5sum ${LOCAL_FILE_PATH} | awk '{ print $1 }')
 
 # Extract the file name from the local file path
@@ -36,7 +46,7 @@ function check_version() {
 
 # Check for reverse order
 REVERSE=""
-if [[ $4 == "-r" ]]; then
+if [[ $3 == "-r" ]] || [[ $4 == "-r" ]]; then
     REVERSE="-r"
 fi
 
